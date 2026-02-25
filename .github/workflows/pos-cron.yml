@@ -1,17 +1,100 @@
-name: POS Automation
+name: POS Automation System
 
 on:
   schedule:
-    - cron: '0 0 * * *'    # 00:00 WIB expire token
-    - cron: '0 17 * * 0'   # Minggu 02:00 WIB weekly backup
+    # 00:00 WIB (17:00 UTC)
+    - cron: '0 17 * * *'
+
+    # Minggu 02:00 WIB (19:00 UTC Sabtu)
+    - cron: '0 19 * * 6'
+
+    # Tanggal 1 setiap bulan jam 03:00 WIB (20:00 UTC)
+    - cron: '0 20 1 * *'
+
+  workflow_dispatch:
 
 jobs:
-  run-automation:
+  automation:
     runs-on: ubuntu-latest
+
     steps:
 
-      - name: Expire Tokens
+      - name: Set Date Variables
+        run: |
+          echo "TODAY=$(date +%F)" >> $GITHUB_ENV
+          echo "YEAR_MONTH=$(date +%Y-%m)" >> $GITHUB_ENV
+
+      # =========================
+      # 1️⃣ EXPIRE TOKEN (HARIAN)
+      # =========================
+      - name: Expire Old Tokens
         run: |
           curl -X POST "${{ secrets.SUPABASE_URL }}/rest/v1/rpc/expire_old_tokens" \
           -H "apikey: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
           -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}"
+
+      # =========================
+      # 2️⃣ WEEKLY BACKUP
+      # =========================
+      - name: Download Transactions (Weekly)
+        run: |
+          curl "${{ secrets.SUPABASE_URL }}/rest/v1/transactions?select=*" \
+          -H "apikey: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+          -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+          -o transactions_${{ env.TODAY }}.json
+
+      - name: Download Transaction Items
+        run: |
+          curl "${{ secrets.SUPABASE_URL }}/rest/v1/transaction_items?select=*" \
+          -H "apikey: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+          -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+          -o transaction_items_${{ env.TODAY }}.json
+
+      - name: Download Products
+        run: |
+          curl "${{ secrets.SUPABASE_URL }}/rest/v1/products?select=*" \
+          -H "apikey: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+          -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+          -o products_${{ env.TODAY }}.json
+
+      - name: Download Categories
+        run: |
+          curl "${{ secrets.SUPABASE_URL }}/rest/v1/categories?select=*" \
+          -H "apikey: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+          -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+          -o categories_${{ env.TODAY }}.json
+
+      - name: Zip Weekly Backup
+        run: |
+          zip weekly_backup_${{ env.TODAY }}.zip \
+          transactions_${{ env.TODAY }}.json \
+          transaction_items_${{ env.TODAY }}.json \
+          products_${{ env.TODAY }}.json \
+          categories_${{ env.TODAY }}.json
+
+      - name: Upload Weekly Backup to Supabase Storage
+        run: |
+          curl -X POST \
+          "${{ secrets.SUPABASE_URL }}/storage/v1/object/backup/weekly/weekly_backup_${{ env.TODAY }}.zip" \
+          -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+          -H "Content-Type: application/zip" \
+          --data-binary @weekly_backup_${{ env.TODAY }}.zip
+
+      # =========================
+      # 3️⃣ MONTHLY SNAPSHOT
+      # =========================
+      - name: Zip Monthly Snapshot
+        run: |
+          zip monthly_snapshot_${{ env.YEAR_MONTH }}.zip \
+          transactions_${{ env.TODAY }}.json \
+          transaction_items_${{ env.TODAY }}.json \
+          products_${{ env.TODAY }}.json \
+          categories_${{ env.TODAY }}.json
+
+      - name: Upload Monthly Snapshot
+        run: |
+          curl -X POST \
+          "${{ secrets.SUPABASE_URL }}/storage/v1/object/backup/monthly/monthly_snapshot_${{ env.YEAR_MONTH }}.zip" \
+          -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+          -H "Content-Type: application/zip" \
+          --data-binary @monthly_snapshot_${{ env.YEAR_MONTH }}.zip
