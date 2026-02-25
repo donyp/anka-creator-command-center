@@ -1,0 +1,32 @@
+name: POS Automation
+
+on:
+  schedule:
+    - cron: '0 14 * * *'   # 21:00 WIB (WA Report)
+    - cron: '0 0 * * *'    # 00:00 WIB (Expire Token)
+    - cron: '0 17 * * 0'   # Minggu 02:00 WIB (Weekly Backup)
+
+jobs:
+  run-automation:
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Expire Tokens
+        run: |
+          curl -X POST "${{ secrets.SUPABASE_URL }}/rest/v1/rpc/expire_old_tokens" \
+          -H "apikey: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+          -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}"
+
+      - name: Send WhatsApp Report
+        run: |
+          curl -X POST https://graph.facebook.com/v18.0/${{ secrets.WA_PHONE_ID }}/messages \
+          -H "Authorization: Bearer ${{ secrets.WA_TOKEN }}" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "messaging_product": "whatsapp",
+            "to": "6285881766774",
+            "type": "text",
+            "text": {
+              "body": "Laporan POS otomatis jam 21:00"
+            }
+          }'
