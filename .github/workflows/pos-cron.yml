@@ -11,6 +11,8 @@ on:
     # Tanggal 1 setiap bulan jam 03:00 WIB (20:00 UTC)
     - cron: '0 20 1 * *'
 
+    - cron: '0 18 2 * *'
+
   workflow_dispatch:
 
 jobs:
@@ -30,6 +32,12 @@ jobs:
       - name: Expire Old Tokens
         run: |
           curl -X POST "${{ secrets.SUPABASE_URL }}/rest/v1/rpc/expire_old_tokens" \
+          -H "apikey: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+          -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}"
+
+      - name: Archive Old Transactions
+        run: |
+          curl -X POST "${{ secrets.SUPABASE_URL }}/rest/v1/rpc/archive_old_transactions" \
           -H "apikey: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
           -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}"
 
