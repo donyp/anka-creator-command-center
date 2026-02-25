@@ -24,7 +24,7 @@ jobs:
           -H "Content-Type: application/json" \
           -d '{
             "messaging_product": "whatsapp",
-            "to": "6285881766774",
+            "to": "6285117778351",
             "type": "text",
             "text": {
               "body": "Laporan POS otomatis jam 21:00"
