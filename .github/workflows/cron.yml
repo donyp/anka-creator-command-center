@@ -1,4 +1,4 @@
-name: Daily Token Generator
+name: Generate Daily Token
 
 on:
   schedule:
@@ -10,4 +10,4 @@ jobs:
     steps:
       - name: Call Supabase Function
         run: |
-          curl -X POST https://PROJECTID.supabase.co/functions/v1/generate-daily-token
+          curl -X POST https://PROJECTID.supabase.co/functions/v1/generate-token
