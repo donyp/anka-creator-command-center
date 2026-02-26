@@ -8,7 +8,7 @@ jobs:
   call-function:
     runs-on: ubuntu-latest
     steps:
-      - name: Call Supabase Function
+      - name: Call Supabase Function Securely
         run: |
           curl -X POST https://ywbywpfqtuwizjkirbnt.supabase.co/functions/v1/generate-token \
            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}"
