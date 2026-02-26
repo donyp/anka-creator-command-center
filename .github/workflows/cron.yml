@@ -1,0 +1,13 @@
+name: Daily Token Generator
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+
+jobs:
+  call-function:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call Supabase Function
+        run: |
+          curl -X POST https://PROJECTID.supabase.co/functions/v1/generate-daily-token
